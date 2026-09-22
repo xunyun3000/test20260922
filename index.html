@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>布丁小棕熊 - Google Apps Script 試算表測試</title>
+  <title>布丁小棕熊 - Google Apps Script 試算表寫入測試</title>
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- FontAwesome Icons -->
@@ -82,20 +82,8 @@
       70% { transform: scale(1.05, 0.95); }
       85% { transform: scale(0.98, 1.02); }
     }
-    .jiggle-click:active {
-      animation: jellyBounce 0.5s ease;
-    }
     .anim-jelly {
       animation: jellyBounce 0.6s ease;
-    }
-
-    /* Floating / Wobble */
-    @keyframes gentleFloat {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50% { transform: translateY(-4px) rotate(1deg); }
-    }
-    .gentle-float {
-      animation: gentleFloat 3s ease-in-out infinite;
     }
 
     /* Bear Ear Wiggle */
@@ -145,7 +133,7 @@
       
       <!-- Brand & Mascot Unit -->
       <div class="flex items-center gap-3">
-        <!-- Interactive Bear Mascot (Responds to Clicks & States) -->
+        <!-- Interactive Bear Mascot -->
         <button 
           type="button" 
           id="mascotBtn" 
@@ -172,7 +160,7 @@
               <circle cx="62" cy="49" r="3.5" fill="#451A03"/>
               <circle cx="63.2" cy="47.8" r="1" fill="#FFFFFF"/>
             </g>
-            <!-- Eyes (Happy Arc State, Hidden by Default) -->
+            <!-- Eyes (Happy Arc State) -->
             <g id="bearEyesHappy" class="hidden">
               <path d="M 34 50 Q 38 44 42 50" stroke="#451A03" stroke-width="3" fill="none" stroke-linecap="round"/>
               <path d="M 58 50 Q 62 44 66 50" stroke="#451A03" stroke-width="3" fill="none" stroke-linecap="round"/>
@@ -205,7 +193,7 @@
         </div>
       </div>
 
-      <!-- Action Buttons: Audio Mute Toggle & Fill Sample -->
+      <!-- Action Buttons: Sound Toggle & Fill Sample -->
       <div class="flex items-center gap-2">
         <button 
           type="button" 
@@ -272,14 +260,22 @@
 
     <div class="bg-white rounded-3xl p-5 sm:p-7 border-2 border-amber-200 shadow-pudding space-y-6">
 
-      <!-- Web App URL Setting -->
+      <!-- Web App URL Setting (Permanently Fixed & Readonly) -->
       <div>
         <div class="flex items-center justify-between mb-1.5">
-          <label for="webAppUrl" class="text-xs font-black text-pudding-caramelDark flex items-center gap-1.5">
+          <label class="text-xs font-black text-pudding-caramelDark flex items-center gap-1.5">
             <i class="fa-solid fa-link text-pudding-accent"></i>
-            Web 應用程式網址 (Web App URL)
+            固定 Web 應用程式網址 (Web App URL)
           </label>
           <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              id="copyUrlBtn" 
+              class="text-[11px] font-bold text-amber-900 bg-amber-100/70 hover:bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 transition active:scale-95"
+              title="複製固定網址"
+            >
+              <i class="fa-regular fa-copy text-amber-700"></i> 複製網址
+            </button>
             <button 
               type="button" 
               id="testGetBtn" 
@@ -288,30 +284,26 @@
             >
               <i class="fa-solid fa-satellite-dish text-amber-700"></i> 測試連線
             </button>
-            <span class="text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
-              自動存於本機
+            <span class="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+              <i class="fa-solid fa-lock text-[10px]"></i> 固定端點
             </span>
           </div>
         </div>
 
         <div class="relative">
           <input 
-            type="url" 
+            type="text" 
             id="webAppUrl" 
-            placeholder="https://script.google.com/macros/s/AKfycb.../exec" 
-            class="w-full pl-3 pr-10 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm font-mono text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+            readonly
+            value="https://script.google.com/macros/s/AKfycby00OaHODra3rzBvlse4L2uTt0TMcDvyL-YOT6iH5ZbltUdH2EZ16JUyzqpWOVox1yG/exec"
+            class="w-full pl-3.5 pr-10 py-2.5 bg-amber-50/60 border-2 border-amber-200 rounded-xl text-xs sm:text-sm font-mono text-pudding-caramelDark font-semibold select-all cursor-default focus:outline-none"
           />
-          <button 
-            type="button" 
-            id="clearUrlBtn" 
-            class="absolute right-3 top-3 text-amber-400 hover:text-amber-700 transition" 
-            title="清除已存網址"
-          >
-            <i class="fa-solid fa-circle-xmark"></i>
-          </button>
+          <div class="absolute right-3.5 top-3 text-amber-500" title="已固定網址，無需手動修改">
+            <i class="fa-solid fa-lock"></i>
+          </div>
         </div>
         <p class="text-[11px] text-amber-800/80 mt-1">
-          請貼上部署為「任何人 (Anyone)」的 <span class="font-mono font-bold bg-amber-50 px-1 rounded text-pudding-caramel">/exec</span> 網址。
+          已永久鎖定發布為「任何人 (Anyone)」的端點，無需重複輸入。
         </p>
       </div>
 
@@ -319,7 +311,7 @@
 
       <form id="testForm" class="space-y-5">
 
-        <!-- Hidden / Readonly Auto-captured metadata overview -->
+        <!-- Auto-captured metadata overview -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-pudding-custardLight/70 border border-amber-200 rounded-2xl text-xs">
           <div class="flex items-center justify-between">
             <span class="text-amber-900 font-bold flex items-center gap-1.5">
@@ -342,7 +334,7 @@
           </div>
         </div>
 
-        <!-- 2. 校園地點 (location) with interactive quick chips -->
+        <!-- 2. 校園地點 (location) with quick chips -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="fieldLocation" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
@@ -380,7 +372,7 @@
           </div>
         </div>
 
-        <!-- 4. 物種 (species) with interactive quick chips -->
+        <!-- 4. 物種 (species) with quick chips -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label for="fieldSpecies" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
@@ -526,6 +518,7 @@
       </div>
 
       <pre id="responseLog" class="w-full bg-[#2B170C] text-pudding-custard rounded-xl p-3.5 text-xs font-mono overflow-x-auto leading-relaxed max-h-64 whitespace-pre-wrap select-all font-medium">// 系統已就緒。
+// 目標端點已鎖定。
 // 頁面載入時已自動發起 GPS 定位。
 // 填寫欄位並點擊送出時，系統將自動擷取精確時間並寫入試算表。</pre>
     </div>
@@ -538,7 +531,7 @@
 
   <script>
     /* ==========================================================================
-       1. SYNTHETIC AUDIO ENGINE (Web Audio API - No external sound assets)
+       1. SYNTHETIC AUDIO ENGINE (Web Audio API)
        ========================================================================== */
     let audioCtx = null;
     let isSoundMuted = false;
@@ -575,9 +568,7 @@
 
         osc.start(now);
         osc.stop(now + 0.25);
-      } catch (e) {
-        // Fallback silently if audio restricted
-      }
+      } catch (e) {}
     }
 
     // Gentle Chime for GPS / Chip
@@ -655,7 +646,7 @@
     }
 
     /* ==========================================================================
-       2. CONFETTI PARTICLES ANIMATION
+       2. CONFETTI CANDY PARTICLES ANIMATION
        ========================================================================== */
     const confettiCanvas = document.getElementById('confettiCanvas');
     const ctx = confettiCanvas.getContext('2d');
@@ -720,8 +711,14 @@
       }
     }
 
+    /* ==========================================================================
+       3. DOM ELEMENTS & FIXED ENDPOINT
+       ========================================================================== */
+    // Permanently fixed GAS URL
+    const FIXED_GAS_URL = "https://script.google.com/macros/s/AKfycby00OaHODra3rzBvlse4L2uTt0TMcDvyL-YOT6iH5ZbltUdH2EZ16JUyzqpWOVox1yG/exec";
+
     const webAppUrl = document.getElementById('webAppUrl');
-    const clearUrlBtn = document.getElementById('clearUrlBtn');
+    const copyUrlBtn = document.getElementById('copyUrlBtn');
     const testGetBtn = document.getElementById('testGetBtn');
 
     const fieldLocation = document.getElementById('fieldLocation');
@@ -776,6 +773,16 @@
       setTimeout(() => {
         toast.classList.add('translate-y-24', 'opacity-0');
       }, 3200);
+    }
+
+    function copyToClipboard(text, successMsg) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast(successMsg);
     }
 
     // Mascot Expression Reactivity
@@ -837,6 +844,14 @@
       );
     }
 
+    function fillSampleData() {
+      fieldLocation.value = '宮燈教室步道';
+      fieldSpecies.value = '黑冠麻鷺';
+      fieldQuantity.value = '1 隻';
+      fieldNotes.value = '於草皮覓食中，狀態良好';
+      playChimeSound();
+    }
+
     document.querySelectorAll('.quick-chip').forEach(btn => {
       btn.addEventListener('click', () => {
         playBoingSound();
@@ -853,14 +868,14 @@
       });
     });
 
-    // Interactive Mascot click reaction
+    // Mascot click reaction
     mascotBtn.addEventListener('click', () => {
       playBoingSound();
       setBearMood('curious');
       showToast('🐻 棕熊搖動了耳朵！');
     });
 
-    // Interactive Jiggly Pudding widget poke
+    // Jiggly Pudding widget poke
     miniPuddingWidget.addEventListener('click', () => {
       playBoingSound();
       miniPuddingWidget.classList.add('anim-jelly');
@@ -889,68 +904,39 @@
       requestGeolocation();
     });
 
+    // Copy Fixed URL
+    copyUrlBtn.addEventListener('click', () => {
+      playBoingSound();
+      copyToClipboard(FIXED_GAS_URL, '已複製 Apps Script 固定網址');
+    });
+
     // Copy Response Log
     copyLogBtn.addEventListener('click', () => {
       playBoingSound();
-      const text = responseLog.textContent;
-      const el = document.createElement('textarea');
-      el.value = text;
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-      showToast('已複製回應記錄至剪貼簿');
+      copyToClipboard(responseLog.textContent, '已複製回應記錄至剪貼簿');
     });
 
-    function fillSampleData() {
-      fieldLocation.value = '宮燈教室步道';
-      fieldSpecies.value = '黑冠麻鷺';
-      fieldQuantity.value = '1 隻';
-      fieldNotes.value = '於草皮覓食中，狀態良好';
-      playChimeSound();
-    }
-
+    // Quick Sample
     quickSampleBtn.addEventListener('click', () => {
       playBoingSound();
       fillSampleData();
       showToast('已填入測試範例資料');
     });
 
-    // LocalStorage URL persistence
+    // Lifecycle init
     window.addEventListener('DOMContentLoaded', () => {
-      const saved = localStorage.getItem('gas_test_url');
-      if (saved) {
-        webAppUrl.value = saved;
-      }
+      webAppUrl.value = FIXED_GAS_URL;
       fillSampleData();
-      // Auto-trigger GPS geolocation on launch
+      // Auto-trigger mobile GPS geolocation on launch
       requestGeolocation();
-    });
-
-    webAppUrl.addEventListener('input', () => {
-      localStorage.setItem('gas_test_url', webAppUrl.value.trim());
-    });
-
-    clearUrlBtn.addEventListener('click', () => {
-      playBoingSound();
-      webAppUrl.value = '';
-      localStorage.removeItem('gas_test_url');
-      showToast('已清除已儲存的網址');
     });
 
     // Test GET ping connection
     testGetBtn.addEventListener('click', async () => {
-      const url = webAppUrl.value.trim();
-      if (!url) {
-        playErrorSound();
-        showToast('請先填入 Web App URL', true);
-        webAppUrl.focus();
-        return;
-      }
       playBoingSound();
       showToast('正在測試 GET 連線...');
       try {
-        const res = await fetch(url);
+        const res = await fetch(FIXED_GAS_URL);
         const text = await res.text();
         responseLog.textContent = `// [GET 測試連線結果]:\n${text}`;
         statusBadge.textContent = 'GET 測試通過';
@@ -966,14 +952,6 @@
 
     testForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const url = webAppUrl.value.trim();
-      if (!url) {
-        playErrorSound();
-        showToast('請先填入 Google Apps Script 網址', true);
-        webAppUrl.focus();
-        return;
-      }
 
       // Automatically capture the exact time at the click moment
       const capturedTimestamp = getFormattedTimestamp();
@@ -998,13 +976,13 @@
       timeElapsed.textContent = '耗時: 測量中...';
       mascotStatusText.textContent = '棕熊全力傳送資料中...';
 
-      responseLog.textContent = `// 發送 POST 請求至: ${url}\n// 擷取時間戳記: ${capturedTimestamp}\n// 酬載內容 (Payload):\n` + JSON.stringify(payload, null, 2);
+      responseLog.textContent = `// 發送 POST 請求至: ${FIXED_GAS_URL}\n// 擷取時間戳記: ${capturedTimestamp}\n// 酬載內容 (Payload):\n` + JSON.stringify(payload, null, 2);
 
       const startTime = performance.now();
 
       try {
         // Send as text/plain to prevent browser preflight CORS OPTIONS check
-        const response = await fetch(url, {
+        const response = await fetch(FIXED_GAS_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'text/plain;charset=utf-8'
