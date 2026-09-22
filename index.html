@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>布丁小棕熊 - Google Apps Script 試算表測試</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: M PLUS Rounded 1c & Fredoka -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"M PLUS Rounded 1c"', 'sans-serif'],
+            display: ['Fredoka', '"M PLUS Rounded 1c"', 'sans-serif'],
+          },
+          colors: {
+            pudding: {
+              bg: '#FFFDF6',
+              card: '#FFFFFF',
+              custardLight: '#FEF9E7',
+              custard: '#FEF3C7',
+              custardDark: '#FDE68A',
+              caramel: '#78350F',
+              caramelHover: '#5C270A',
+              caramelDark: '#451A03',
+              caramelLight: '#B45309',
+              accent: '#D97706',
+              jelly: '#F59E0B',
+            },
+            bear: {
+              body: '#8C5836',
+              earInner: '#F8B4A0',
+              snout: '#FFF3BF',
+              cheeks: '#FDA4AF',
+              outline: '#451A03'
+            }
+          },
+          boxShadow: {
+            pudding: '0 10px 25px -4px rgba(120, 53, 15, 0.12), 0 6px 10px -3px rgba(120, 53, 15, 0.08)',
+            puddingInner: 'inset 0 2px 4px rgba(254, 243, 199, 0.6)',
+            caramelBtn: '0 5px 0px #451A03, 0 10px 15px rgba(69, 26, 3, 0.25)',
+            caramelBtnPressed: '0 1px 0px #451A03, 0 3px 6px rgba(69, 26, 3, 0.2)',
+            chipShadow: '0 2px 0px rgba(120, 53, 15, 0.18)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Caramel Wave Header Banner */
+    .caramel-top-bar {
+      background: #78350F;
+      position: relative;
+    }
+    .caramel-top-bar::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -18px;
+      height: 20px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 40" preserveAspectRatio="none"><path d="M0,0 L1200,0 L1200,8 Q1150,38 1100,20 Q1050,4 1000,18 Q930,42 860,15 Q800,2 740,24 Q680,44 620,16 Q560,-2 490,28 Q430,46 360,12 Q300,-4 240,26 Q180,48 110,18 Q60,2 0,22 Z" fill="%2378350F"/></svg>');
+      background-size: 800px 20px;
+      background-repeat: repeat-x;
+      z-index: 10;
+    }
+
+    /* Jiggly Animations */
+    @keyframes jellyBounce {
+      0%, 100% { transform: scale(1, 1); }
+      30% { transform: scale(1.18, 0.82); }
+      50% { transform: scale(0.88, 1.12); }
+      70% { transform: scale(1.05, 0.95); }
+      85% { transform: scale(0.98, 1.02); }
+    }
+    .jiggle-click:active {
+      animation: jellyBounce 0.5s ease;
+    }
+    .anim-jelly {
+      animation: jellyBounce 0.6s ease;
+    }
+
+    /* Floating / Wobble */
+    @keyframes gentleFloat {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-4px) rotate(1deg); }
+    }
+    .gentle-float {
+      animation: gentleFloat 3s ease-in-out infinite;
+    }
+
+    /* Bear Ear Wiggle */
+    @keyframes earWiggle {
+      0%, 100% { transform: rotate(0deg); }
+      25% { transform: rotate(-8deg); }
+      75% { transform: rotate(8deg); }
+    }
+    .wiggling-ears .ear-left {
+      transform-origin: 26px 28px;
+      animation: earWiggle 0.4s ease 2;
+    }
+    .wiggling-ears .ear-right {
+      transform-origin: 74px 28px;
+      animation: earWiggle 0.4s ease 2 reverse;
+    }
+
+    /* Confetti Canvas */
+    #confettiCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 100;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #B45309;
+      border-radius: 999px;
+    }
+  </style>
+</head>
+
+<body class="bg-pudding-bg text-pudding-caramelDark min-h-screen flex flex-col font-sans selection:bg-pudding-custardDark selection:text-pudding-caramelDark">
+
+  <!-- Confetti Canvas for Success Celebration -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <header class="caramel-top-bar text-white pt-3 pb-6 px-4 shadow-sm relative z-20">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
+      
+      <!-- Brand & Mascot Unit -->
+      <div class="flex items-center gap-3">
+        <!-- Interactive Bear Mascot (Responds to Clicks & States) -->
+        <button 
+          type="button" 
+          id="mascotBtn" 
+          class="relative w-14 h-14 bg-pudding-custard rounded-2xl p-1 border-2 border-pudding-custardDark flex items-center justify-center shadow-md hover:scale-105 active:scale-95 transition cursor-pointer group"
+          title="點我一下！(棕熊互動)"
+        >
+          <svg id="bearSvg" viewBox="0 0 100 100" class="w-full h-full filter drop-shadow">
+            <!-- Ears -->
+            <g id="bearEars">
+              <circle class="ear-left" cx="26" cy="26" r="14" fill="#8C5836" stroke="#451A03" stroke-width="2.5"/>
+              <circle cx="26" cy="26" r="7" fill="#F8B4A0"/>
+              <circle class="ear-right" cx="74" cy="26" r="14" fill="#8C5836" stroke="#451A03" stroke-width="2.5"/>
+              <circle cx="74" cy="26" r="7" fill="#F8B4A0"/>
+            </g>
+            <!-- Head -->
+            <circle cx="50" cy="54" r="32" fill="#8C5836" stroke="#451A03" stroke-width="2.5"/>
+            <!-- Cheeks -->
+            <circle cx="32" cy="59" r="5" fill="#FDA4AF" opacity="0.8"/>
+            <circle cx="68" cy="59" r="5" fill="#FDA4AF" opacity="0.8"/>
+            <!-- Eyes (Normal State) -->
+            <g id="bearEyes">
+              <circle cx="38" cy="49" r="3.5" fill="#451A03"/>
+              <circle cx="39.2" cy="47.8" r="1" fill="#FFFFFF"/>
+              <circle cx="62" cy="49" r="3.5" fill="#451A03"/>
+              <circle cx="63.2" cy="47.8" r="1" fill="#FFFFFF"/>
+            </g>
+            <!-- Eyes (Happy Arc State, Hidden by Default) -->
+            <g id="bearEyesHappy" class="hidden">
+              <path d="M 34 50 Q 38 44 42 50" stroke="#451A03" stroke-width="3" fill="none" stroke-linecap="round"/>
+              <path d="M 58 50 Q 62 44 66 50" stroke="#451A03" stroke-width="3" fill="none" stroke-linecap="round"/>
+            </g>
+            <!-- Snout Muzzle -->
+            <ellipse cx="50" cy="62" rx="14" ry="11" fill="#FFF3BF" stroke="#451A03" stroke-width="1.5"/>
+            <ellipse cx="50" cy="56" rx="4.5" ry="3" fill="#451A03"/>
+            <!-- Mouth Normal -->
+            <path id="bearMouth" d="M 50 59 L 50 63 M 46 62 Q 50 67 54 62" stroke="#451A03" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <span class="absolute -bottom-1 -right-1 bg-amber-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-bold border border-white shadow">
+            <i class="fa-solid fa-hand-pointer"></i>
+          </span>
+        </button>
+
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-black text-pudding-custard tracking-tight">
+              Google Apps Script 試算表寫入測試
+            </h1>
+            <span class="text-[11px] font-bold bg-amber-900/90 text-amber-200 px-2 py-0.5 rounded-md border border-amber-600/50">
+              POST API
+            </span>
+          </div>
+          <p class="text-xs text-amber-200/90 flex items-center gap-1.5 mt-0.5">
+            <span>支援 CORS 跨網域</span>
+            <span>•</span>
+            <span id="mascotStatusText" class="font-bold text-amber-100 transition-colors">棕熊準備好了！</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Action Buttons: Audio Mute Toggle & Fill Sample -->
+      <div class="flex items-center gap-2">
+        <button 
+          type="button" 
+          id="soundToggleBtn" 
+          class="flex items-center gap-1.5 bg-amber-900/80 hover:bg-amber-900 text-pudding-custard px-2.5 py-1.5 rounded-xl border border-amber-600/50 text-xs font-bold transition active:scale-95 shadow-sm"
+          title="切換音效開關"
+        >
+          <i id="soundIcon" class="fa-solid fa-volume-high text-amber-300"></i>
+          <span class="hidden md:inline text-[11px]" id="soundText">音效已開</span>
+        </button>
+
+        <button 
+          type="button" 
+          id="quickSampleBtn" 
+          class="flex items-center gap-1.5 bg-pudding-caramelDark hover:bg-[#321201] text-pudding-custard px-3 py-1.5 rounded-xl border border-amber-600/60 text-xs font-black transition active:scale-95 shadow-sm cursor-pointer"
+          title="自動填入測試範例"
+        >
+          <i class="fa-solid fa-paw text-amber-400"></i>
+          <span class="hidden sm:inline">帶入範例</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-4 pt-9 pb-12 flex-1 w-full space-y-6">
+
+    <!-- Top GPS Auto-Tracking Status Banner -->
+    <div class="bg-amber-50 border-2 border-amber-200/80 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+      <div class="flex items-center gap-3">
+        <!-- Interactive Mini Jiggly Pudding Icon -->
+        <button 
+          type="button" 
+          id="miniPuddingWidget" 
+          class="w-10 h-10 rounded-xl bg-pudding-custard border-2 border-amber-300 flex items-center justify-center text-xl shadow-sm hover:rotate-6 active:scale-90 transition cursor-pointer"
+          title="戳戳小布丁 (Q彈互動)"
+        >
+          🍮
+        </button>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-black text-pudding-caramel">載入自動定位 (Auto GPS)</span>
+            <span id="gpsStatusPill" class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 flex items-center gap-1">
+              <i class="fa-solid fa-spinner fa-spin"></i> 定位發動中...
+            </span>
+          </div>
+          <p id="gpsCoordDisplay" class="text-xs font-mono text-pudding-caramelDark font-bold mt-0.5">
+            座標：讀取中...
+          </p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 self-end sm:self-center">
+        <button 
+          type="button" 
+          id="refreshGpsBtn" 
+          class="text-xs font-bold text-pudding-caramelDark bg-white hover:bg-amber-100 border border-amber-300 px-2.5 py-1.5 rounded-xl flex items-center gap-1.5 transition active:scale-95 shadow-sm cursor-pointer"
+        >
+          <i class="fa-solid fa-arrows-rotate text-amber-600"></i>
+          <span>重新定位</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-3xl p-5 sm:p-7 border-2 border-amber-200 shadow-pudding space-y-6">
+
+      <!-- Web App URL Setting -->
+      <div>
+        <div class="flex items-center justify-between mb-1.5">
+          <label for="webAppUrl" class="text-xs font-black text-pudding-caramelDark flex items-center gap-1.5">
+            <i class="fa-solid fa-link text-pudding-accent"></i>
+            Web 應用程式網址 (Web App URL)
+          </label>
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              id="testGetBtn" 
+              class="text-[11px] font-bold text-amber-900 bg-amber-100/70 hover:bg-amber-200 px-2 py-0.5 rounded-md border border-amber-300 transition active:scale-95"
+              title="發送 GET 測試網址連線"
+            >
+              <i class="fa-solid fa-satellite-dish text-amber-700"></i> 測試連線
+            </button>
+            <span class="text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+              自動存於本機
+            </span>
+          </div>
+        </div>
+
+        <div class="relative">
+          <input 
+            type="url" 
+            id="webAppUrl" 
+            placeholder="https://script.google.com/macros/s/AKfycb.../exec" 
+            class="w-full pl-3 pr-10 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm font-mono text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+          />
+          <button 
+            type="button" 
+            id="clearUrlBtn" 
+            class="absolute right-3 top-3 text-amber-400 hover:text-amber-700 transition" 
+            title="清除已存網址"
+          >
+            <i class="fa-solid fa-circle-xmark"></i>
+          </button>
+        </div>
+        <p class="text-[11px] text-amber-800/80 mt-1">
+          請貼上部署為「任何人 (Anyone)」的 <span class="font-mono font-bold bg-amber-50 px-1 rounded text-pudding-caramel">/exec</span> 網址。
+        </p>
+      </div>
+
+      <hr class="border-amber-100">
+
+      <form id="testForm" class="space-y-5">
+
+        <!-- Hidden / Readonly Auto-captured metadata overview -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-pudding-custardLight/70 border border-amber-200 rounded-2xl text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-amber-900 font-bold flex items-center gap-1.5">
+              <i class="fa-regular fa-clock text-amber-600"></i>
+              1. 日期時間 (timestamp)
+            </span>
+            <span class="font-mono text-[11px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200">
+              <i class="fa-solid fa-bolt text-amber-500"></i> 送出瞬間自動抓取
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span class="text-amber-900 font-bold flex items-center gap-1.5">
+              <i class="fa-solid fa-location-crosshairs text-amber-600"></i>
+              3. GPS 座標 (gps)
+            </span>
+            <span id="formGpsSnapshot" class="font-mono text-[11px] font-bold text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200">
+              等待定位
+            </span>
+          </div>
+        </div>
+
+        <!-- 2. 校園地點 (location) with interactive quick chips -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="fieldLocation" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
+              <i class="fa-solid fa-map-pin text-pudding-accent"></i>
+              2. 校園地點 (location) <span class="text-rose-500">*</span>
+            </label>
+            <span class="text-[10px] text-amber-700">點擊下方標籤快速帶入</span>
+          </div>
+
+          <input 
+            type="text" 
+            id="fieldLocation" 
+            placeholder="例如：淡水校園宮燈教室步道" 
+            required
+            class="w-full px-3.5 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+          />
+
+          <!-- Location Quick Chips -->
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldLocation" data-val="宮燈教室步道">
+              🏮 宮燈步道
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldLocation" data-val="牧羊草坪">
+              🐑 牧羊草坪
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldLocation" data-val="蛋捲廣場">
+              🌀 蛋捲廣場
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldLocation" data-val="覺軒花園">
+              🌸 覺軒花園
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldLocation" data-val="福園池塘">
+              🐟 福園水池
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. 物種 (species) with interactive quick chips -->
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label for="fieldSpecies" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
+              <i class="fa-solid fa-tag text-pudding-accent"></i>
+              4. 物種名稱 (species) <span class="text-rose-500">*</span>
+            </label>
+            <span class="text-[10px] text-amber-700">常見校園生物快選</span>
+          </div>
+
+          <input 
+            type="text" 
+            id="fieldSpecies" 
+            placeholder="例如：黑冠麻鷺" 
+            required
+            class="w-full px-3.5 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+          />
+
+          <!-- Species Quick Chips -->
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="黑冠麻鷺">
+              🐦 黑冠麻鷺
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="赤腹松鼠">
+              🐿️ 赤腹松鼠
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="麻雀">
+              🐤 麻雀
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="白頭翁">
+              🕊️ 白頭翁
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="五色鳥">
+              🦜 五色鳥
+            </button>
+            <button type="button" class="quick-chip px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldSpecies" data-val="領角鴞">
+              🦉 領角鴞
+            </button>
+          </div>
+        </div>
+
+        <!-- 5. 數量與單位 & 6. 備註 -->
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-4">
+          
+          <!-- 5. 數量與單位 (quantityWithUnit) -->
+          <div class="sm:col-span-5">
+            <div class="flex items-center justify-between mb-1">
+              <label for="fieldQuantity" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
+                <i class="fa-solid fa-hashtag text-pudding-accent"></i>
+                5. 數量與單位 <span class="text-rose-500">*</span>
+              </label>
+            </div>
+            <input 
+              type="text" 
+              id="fieldQuantity" 
+              placeholder="例如：2 隻" 
+              required
+              class="w-full px-3.5 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+            />
+            <!-- Quantity Quick Chips -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldQuantity" data-val="1 隻">
+                1 隻
+              </button>
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldQuantity" data-val="2 隻">
+                2 隻
+              </button>
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldQuantity" data-val="3 隻">
+                3 隻
+              </button>
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldQuantity" data-val="1 群">
+                1 群
+              </button>
+            </div>
+          </div>
+
+          <!-- 6. 備註 (notes) -->
+          <div class="sm:col-span-7">
+            <div class="flex items-center justify-between mb-1">
+              <label for="fieldNotes" class="text-xs font-bold text-pudding-caramelDark flex items-center gap-1.5">
+                <i class="fa-regular fa-comment-dots text-pudding-accent"></i>
+                6. 備註說明 (notes)
+              </label>
+              <span class="text-[10px] text-amber-700">可選填</span>
+            </div>
+            <input 
+              type="text" 
+              id="fieldNotes" 
+              placeholder="例如：於草皮覓食中，活動力正常" 
+              class="w-full px-3.5 py-2.5 bg-[#FFFDF7] border-2 border-amber-200 rounded-xl text-xs sm:text-sm text-pudding-caramelDark focus:outline-none focus:border-pudding-caramel focus:ring-2 focus:ring-pudding-custardDark transition"
+            />
+            <!-- Notes Quick Chips -->
+            <div class="flex flex-wrap gap-1.5 mt-2">
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldNotes" data-val="草地覓食中">
+                🌱 覓食中
+              </button>
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldNotes" data-val="樹上棲息中">
+                🌳 樹上棲息
+              </button>
+              <button type="button" class="quick-chip px-2 py-0.5 text-xs font-bold rounded-md bg-amber-50 hover:bg-amber-100 border border-amber-200 text-pudding-caramelDark transition active:scale-95 shadow-chipShadow" data-target="fieldNotes" data-val="狀態良好">
+                ✨ 狀態良好
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Submit Button (3D Caramel Pudding Bounce Button) -->
+        <div class="pt-3">
+          <button 
+            type="submit" 
+            id="submitBtn" 
+            class="w-full bg-pudding-caramel hover:bg-pudding-caramelHover active:translate-y-1 text-pudding-custard font-black py-4 px-6 rounded-2xl shadow-caramelBtn active:shadow-caramelBtnPressed transition-all flex items-center justify-center gap-3 cursor-pointer border-2 border-pudding-caramelDark text-sm sm:text-base group"
+          >
+            <span id="submitPuddingIcon" class="text-xl transition-transform group-hover:scale-125">🍮</span>
+            <span id="submitText">立即送出資料至 Google 試算表</span>
+            <i class="fa-solid fa-arrow-right text-xs opacity-70 group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="bg-white rounded-3xl p-5 border-2 border-amber-200 shadow-pudding">
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-amber-100">
+        <div class="flex items-center gap-2">
+          <span class="w-6 h-6 rounded-lg bg-amber-100 flex items-center justify-center text-xs text-amber-800">
+            <i class="fa-solid fa-terminal"></i>
+          </span>
+          <h2 class="text-sm font-black text-pudding-caramelDark">執行回應 (Response Log)</h2>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <span id="timeElapsed" class="text-xs font-mono text-amber-800/80">耗時: - ms</span>
+          <span id="statusBadge" class="hidden text-[11px] font-bold px-2 py-0.5 rounded-full border"></span>
+          <button 
+            type="button" 
+            id="copyLogBtn" 
+            class="text-[11px] font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-md border border-amber-200 active:scale-95 transition"
+            title="複製回應內容"
+          >
+            <i class="fa-regular fa-copy"></i>
+          </button>
+        </div>
+      </div>
+
+      <pre id="responseLog" class="w-full bg-[#2B170C] text-pudding-custard rounded-xl p-3.5 text-xs font-mono overflow-x-auto leading-relaxed max-h-64 whitespace-pre-wrap select-all font-medium">// 系統已就緒。
+// 頁面載入時已自動發起 GPS 定位。
+// 填寫欄位並點擊送出時，系統將自動擷取精確時間並寫入試算表。</pre>
+    </div>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 pointer-events-none z-50 px-4 py-2.5 rounded-2xl text-xs font-black border shadow-xl flex items-center gap-2">
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. SYNTHETIC AUDIO ENGINE (Web Audio API - No external sound assets)
+       ========================================================================== */
+    let audioCtx = null;
+    let isSoundMuted = false;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Playful Pudding Boing Sound
+    function playBoingSound() {
+      if (isSoundMuted) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.exponentialRampToValueAtTime(540, now + 0.08);
+        osc.frequency.exponentialRampToValueAtTime(260, now + 0.22);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.25);
+      } catch (e) {
+        // Fallback silently if audio restricted
+      }
+    }
+
+    // Gentle Chime for GPS / Chip
+    function playChimeSound() {
+      if (isSoundMuted) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(587.33, now); // D5
+        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12); // A5
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } catch (e) {}
+    }
+
+    // Happy Fanfare for Successful Write
+    function playSuccessFanfare() {
+      if (isSoundMuted) return;
+      initAudio();
+      try {
+        const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+        notes.forEach((freq, idx) => {
+          const start = audioCtx.currentTime + idx * 0.08;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, start);
+
+          gain.gain.setValueAtTime(0.18, start);
+          gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          osc.start(start);
+          osc.stop(start + 0.25);
+        });
+      } catch (e) {}
+    }
+
+    // Low error sound
+    function playErrorSound() {
+      if (isSoundMuted) return;
+      initAudio();
+      try {
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.3);
+      } catch (e) {}
+    }
+
+    /* ==========================================================================
+       2. CONFETTI PARTICLES ANIMATION
+       ========================================================================== */
+    const confettiCanvas = document.getElementById('confettiCanvas');
+    const ctx = confettiCanvas.getContext('2d');
+    let particles = [];
+    let animationFrameId = null;
+
+    function resizeCanvas() {
+      confettiCanvas.width = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerPuddingConfetti() {
+      particles = [];
+      const colors = ['#78350F', '#F59E0B', '#FDE68A', '#FEF3C7', '#F87171', '#34D399'];
+      for (let i = 0; i < 90; i++) {
+        particles.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight * 0.45,
+          vx: (Math.random() - 0.5) * 16,
+          vy: (Math.random() - 1.2) * 14,
+          size: Math.random() * 8 + 4,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotationSpeed: (Math.random() - 0.5) * 10,
+          opacity: 1
+        });
+      }
+      if (!animationFrameId) {
+        animateConfetti();
+      }
+    }
+
+    function animateConfetti() {
+      ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      particles.forEach((p, idx) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.35; // gravity
+        p.rotation += p.rotationSpeed;
+        p.opacity -= 0.012;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate((p.rotation * Math.PI) / 180);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = Math.max(0, p.opacity);
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+        ctx.restore();
+
+        if (p.opacity <= 0) {
+          particles.splice(idx, 1);
+        }
+      });
+
+      if (particles.length > 0) {
+        animationFrameId = requestAnimationFrame(animateConfetti);
+      } else {
+        ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+        animationFrameId = null;
+      }
+    }
+
+    const webAppUrl = document.getElementById('webAppUrl');
+    const clearUrlBtn = document.getElementById('clearUrlBtn');
+    const testGetBtn = document.getElementById('testGetBtn');
+
+    const fieldLocation = document.getElementById('fieldLocation');
+    const fieldSpecies = document.getElementById('fieldSpecies');
+    const fieldQuantity = document.getElementById('fieldQuantity');
+    const fieldNotes = document.getElementById('fieldNotes');
+
+    const testForm = document.getElementById('testForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const submitPuddingIcon = document.getElementById('submitPuddingIcon');
+
+    const quickSampleBtn = document.getElementById('quickSampleBtn');
+    const refreshGpsBtn = document.getElementById('refreshGpsBtn');
+    const miniPuddingWidget = document.getElementById('miniPuddingWidget');
+    const mascotBtn = document.getElementById('mascotBtn');
+    const mascotStatusText = document.getElementById('mascotStatusText');
+    const bearSvg = document.getElementById('bearSvg');
+    const bearEyes = document.getElementById('bearEyes');
+    const bearEyesHappy = document.getElementById('bearEyesHappy');
+
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundText = document.getElementById('soundText');
+
+    const gpsStatusPill = document.getElementById('gpsStatusPill');
+    const gpsCoordDisplay = document.getElementById('gpsCoordDisplay');
+    const formGpsSnapshot = document.getElementById('formGpsSnapshot');
+
+    const responseLog = document.getElementById('responseLog');
+    const timeElapsed = document.getElementById('timeElapsed');
+    const statusBadge = document.getElementById('statusBadge');
+    const copyLogBtn = document.getElementById('copyLogBtn');
+    const toast = document.getElementById('toast');
+
+    // Global GPS coordinates state
+    let currentGpsString = "";
+
+    function getFormattedTimestamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function showToast(msg, isError = false) {
+      toast.innerHTML = isError 
+        ? `<i class="fa-solid fa-triangle-exclamation text-rose-500"></i> ${msg}`
+        : `<i class="fa-solid fa-circle-check text-amber-600"></i> ${msg}`;
+      toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 transition-all duration-300 pointer-events-auto z-50 px-4 py-2.5 rounded-2xl text-xs font-black border shadow-xl flex items-center gap-2 ${
+        isError ? 'bg-rose-50 border-rose-300 text-rose-900' : 'bg-amber-50 border-amber-300 text-amber-950'
+      }`;
+      setTimeout(() => {
+        toast.classList.add('translate-y-24', 'opacity-0');
+      }, 3200);
+    }
+
+    // Mascot Expression Reactivity
+    function setBearMood(mood) {
+      if (mood === 'happy') {
+        bearEyes.classList.add('hidden');
+        bearEyesHappy.classList.remove('hidden');
+        bearSvg.classList.add('anim-jelly');
+        mascotStatusText.textContent = '寫入成功！小熊歡呼中 🎉';
+        mascotStatusText.className = 'font-bold text-amber-300 transition-colors';
+        setTimeout(() => {
+          bearEyes.classList.remove('hidden');
+          bearEyesHappy.classList.add('hidden');
+          bearSvg.classList.remove('anim-jelly');
+          mascotStatusText.textContent = '棕熊準備好了！';
+          mascotStatusText.className = 'font-bold text-amber-100 transition-colors';
+        }, 3000);
+      } else if (mood === 'curious') {
+        bearSvg.classList.add('wiggling-ears');
+        setTimeout(() => bearSvg.classList.remove('wiggling-ears'), 800);
+      }
+    }
+
+    function requestGeolocation() {
+      gpsStatusPill.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> 定位發動中...';
+      gpsStatusPill.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 flex items-center gap-1';
+      gpsCoordDisplay.textContent = '座標：讀取中...';
+      formGpsSnapshot.textContent = '定位中...';
+
+      if (!navigator.geolocation) {
+        gpsStatusPill.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> 不支援定位';
+        gpsStatusPill.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-rose-200 text-rose-900 flex items-center gap-1';
+        gpsCoordDisplay.textContent = '座標：瀏覽器不支援原生 Geolocation';
+        formGpsSnapshot.textContent = '無 GPS 支援';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude.toFixed(5);
+          const lng = pos.coords.longitude.toFixed(5);
+          currentGpsString = `${lat}, ${lng}`;
+          
+          gpsStatusPill.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-700"></i> 已取得定位';
+          gpsStatusPill.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 flex items-center gap-1';
+          gpsCoordDisplay.textContent = `經緯度：${currentGpsString} (精確度 ±${Math.round(pos.coords.accuracy)}m)`;
+          formGpsSnapshot.textContent = currentGpsString;
+          playChimeSound();
+          showToast(`已取得所在 GPS 座標: ${currentGpsString}`);
+        },
+        (err) => {
+          currentGpsString = "定位未授權";
+          gpsStatusPill.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-amber-700"></i> 定位失敗/略過';
+          gpsStatusPill.className = 'text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1';
+          gpsCoordDisplay.textContent = `定位提示：${err.message || '未允許存取 GPS'}`;
+          formGpsSnapshot.textContent = '未提供 (略過)';
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    document.querySelectorAll('.quick-chip').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playBoingSound();
+        btn.classList.add('anim-jelly');
+        setTimeout(() => btn.classList.remove('anim-jelly'), 500);
+
+        const targetId = btn.getAttribute('data-target');
+        const val = btn.getAttribute('data-val');
+        const targetInput = document.getElementById(targetId);
+        if (targetInput) {
+          targetInput.value = val;
+          targetInput.focus();
+        }
+      });
+    });
+
+    // Interactive Mascot click reaction
+    mascotBtn.addEventListener('click', () => {
+      playBoingSound();
+      setBearMood('curious');
+      showToast('🐻 棕熊搖動了耳朵！');
+    });
+
+    // Interactive Jiggly Pudding widget poke
+    miniPuddingWidget.addEventListener('click', () => {
+      playBoingSound();
+      miniPuddingWidget.classList.add('anim-jelly');
+      setTimeout(() => miniPuddingWidget.classList.remove('anim-jelly'), 500);
+      showToast('🍮 Q 彈布丁抖動了一下！');
+    });
+
+    // Sound toggle
+    soundToggleBtn.addEventListener('click', () => {
+      isSoundMuted = !isSoundMuted;
+      if (isSoundMuted) {
+        soundIcon.className = 'fa-solid fa-volume-xmark text-stone-400';
+        soundText.textContent = '靜音';
+        showToast('已關閉互動音效');
+      } else {
+        soundIcon.className = 'fa-solid fa-volume-high text-amber-300';
+        soundText.textContent = '音效已開';
+        playChimeSound();
+        showToast('已開啟互動音效');
+      }
+    });
+
+    // Refresh GPS button
+    refreshGpsBtn.addEventListener('click', () => {
+      playBoingSound();
+      requestGeolocation();
+    });
+
+    // Copy Response Log
+    copyLogBtn.addEventListener('click', () => {
+      playBoingSound();
+      const text = responseLog.textContent;
+      const el = document.createElement('textarea');
+      el.value = text;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      showToast('已複製回應記錄至剪貼簿');
+    });
+
+    function fillSampleData() {
+      fieldLocation.value = '宮燈教室步道';
+      fieldSpecies.value = '黑冠麻鷺';
+      fieldQuantity.value = '1 隻';
+      fieldNotes.value = '於草皮覓食中，狀態良好';
+      playChimeSound();
+    }
+
+    quickSampleBtn.addEventListener('click', () => {
+      playBoingSound();
+      fillSampleData();
+      showToast('已填入測試範例資料');
+    });
+
+    // LocalStorage URL persistence
+    window.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('gas_test_url');
+      if (saved) {
+        webAppUrl.value = saved;
+      }
+      fillSampleData();
+      // Auto-trigger GPS geolocation on launch
+      requestGeolocation();
+    });
+
+    webAppUrl.addEventListener('input', () => {
+      localStorage.setItem('gas_test_url', webAppUrl.value.trim());
+    });
+
+    clearUrlBtn.addEventListener('click', () => {
+      playBoingSound();
+      webAppUrl.value = '';
+      localStorage.removeItem('gas_test_url');
+      showToast('已清除已儲存的網址');
+    });
+
+    // Test GET ping connection
+    testGetBtn.addEventListener('click', async () => {
+      const url = webAppUrl.value.trim();
+      if (!url) {
+        playErrorSound();
+        showToast('請先填入 Web App URL', true);
+        webAppUrl.focus();
+        return;
+      }
+      playBoingSound();
+      showToast('正在測試 GET 連線...');
+      try {
+        const res = await fetch(url);
+        const text = await res.text();
+        responseLog.textContent = `// [GET 測試連線結果]:\n${text}`;
+        statusBadge.textContent = 'GET 測試通過';
+        statusBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 inline-block';
+        playChimeSound();
+      } catch (e) {
+        responseLog.textContent = `// [GET 連線失敗]: ${e.message}\n請確認發布權限為 Anyone。`;
+        statusBadge.textContent = 'GET 失敗';
+        statusBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300 inline-block';
+        playErrorSound();
+      }
+    });
+
+    testForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const url = webAppUrl.value.trim();
+      if (!url) {
+        playErrorSound();
+        showToast('請先填入 Google Apps Script 網址', true);
+        webAppUrl.focus();
+        return;
+      }
+
+      // Automatically capture the exact time at the click moment
+      const capturedTimestamp = getFormattedTimestamp();
+
+      // Assemble payload matching GAS requirements in order:
+      // [日期時間, 校園地點, GPS, 物種, 數量與單位, 備註]
+      const payload = {
+        timestamp: capturedTimestamp,
+        location: fieldLocation.value.trim(),
+        gps: currentGpsString || '未提供 GPS',
+        species: fieldSpecies.value.trim(),
+        quantityWithUnit: fieldQuantity.value.trim(),
+        notes: fieldNotes.value.trim()
+      };
+
+      // Set Loading UI and sounds
+      playBoingSound();
+      submitBtn.disabled = true;
+      submitPuddingIcon.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+      submitText.textContent = '正在寫入 Google 試算表...';
+      statusBadge.className = 'hidden';
+      timeElapsed.textContent = '耗時: 測量中...';
+      mascotStatusText.textContent = '棕熊全力傳送資料中...';
+
+      responseLog.textContent = `// 發送 POST 請求至: ${url}\n// 擷取時間戳記: ${capturedTimestamp}\n// 酬載內容 (Payload):\n` + JSON.stringify(payload, null, 2);
+
+      const startTime = performance.now();
+
+      try {
+        // Send as text/plain to prevent browser preflight CORS OPTIONS check
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const elapsed = Math.round(performance.now() - startTime);
+        timeElapsed.textContent = `耗時: ${elapsed} ms`;
+
+        const responseText = await response.text();
+        let parsed = null;
+        try {
+          parsed = JSON.parse(responseText);
+        } catch {
+          parsed = null;
+        }
+
+        if (response.ok && parsed && parsed.status === 'success') {
+          // Success Path
+          statusBadge.textContent = '200 OK 寫入成功';
+          statusBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border-emerald-300 inline-block';
+          responseLog.textContent = JSON.stringify(parsed, null, 2);
+          
+          setBearMood('happy');
+          playSuccessFanfare();
+          triggerPuddingConfetti();
+          showToast('寫入成功！試算表已順利新增一列記錄');
+        } else {
+          // Non-200 or unexpected payload response
+          statusBadge.textContent = `${response.status || 'ERROR'} 伺服器回傳異常`;
+          statusBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border-amber-300 inline-block';
+          responseLog.textContent = parsed ? JSON.stringify(parsed, null, 2) : responseText;
+          playErrorSound();
+          showToast('伺服器回傳異常，請檢查回應記錄', true);
+        }
+
+      } catch (err) {
+        // CORS or Network Failure
+        const elapsed = Math.round(performance.now() - startTime);
+        timeElapsed.textContent = `耗時: ${elapsed} ms`;
+
+        statusBadge.textContent = '連線失敗 (Failed to fetch)';
+        statusBadge.className = 'text-[11px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border-rose-300 inline-block';
+
+        responseLog.textContent = `[Fetch Error 錯誤訊息]: ${err.message}\n\n可能原因排查：\n1. Apps Script 部署設定之「誰可以存取 (Who has access)」未設為「所有人 (Anyone)」。\n2. 網址最後非 /exec。\n3. 修改 Apps Script 代碼後，未重新建立「新版本」進行部署。`;
+        
+        playErrorSound();
+        showToast('連線失敗，請檢查部署存取權限', true);
+
+      } finally {
+        submitBtn.disabled = false;
+        submitPuddingIcon.textContent = '🍮';
+        submitText.textContent = '立即送出資料至 Google 試算表';
+      }
+    });
+  </script>
+</body>
+</html>
